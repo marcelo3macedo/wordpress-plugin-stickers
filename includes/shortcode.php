@@ -56,7 +56,7 @@ function stickers_shortcode() {
                 $output .= '</a>';
             }
         } else {
-            $output .= '<p class="text-center text-gray-600 col-span-full">Nenhum Reel encontrado.</p>';
+            $output .= '<p class="text-center text-gray-600 col-span-full">Nenhuma figurinha encontrada.</p>';
         }
 
         $output .= '</div>';

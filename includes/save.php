@@ -13,7 +13,7 @@ add_action('rest_api_init', function () {
 
 function stickers_save_data(WP_REST_Request $request) {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'reels';
+    $table_name = $wpdb->prefix . 'stickers';
 
     $data = $request->get_json_params();
 

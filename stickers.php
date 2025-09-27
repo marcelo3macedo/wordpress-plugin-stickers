@@ -11,8 +11,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once plugin_dir_path(__FILE__) . 'includes/rewrite.php';
 require_once plugin_dir_path(__FILE__) . 'includes/activation.php';
+require_once plugin_dir_path(__FILE__) . 'includes/rewrite.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcode.php';
 require_once plugin_dir_path(__FILE__) . 'includes/seo.php';
 require_once plugin_dir_path(__FILE__) . 'includes/assets.php';
