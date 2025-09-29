@@ -11,9 +11,9 @@ function stickers_shortcode() {
     $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
     $parts = explode('/', $path);
     $slug = end($parts);
-    $is_single_reels = (count($parts) > 1 && $parts[0] === 'figurinhas' && $slug !== 'figurinhas');
-
-    if ($is_single_reels) {
+    $is_single_stickers = (count($parts) > 1 && $parts[0] === 'figurinhas' && $slug !== 'figurinhas' && $parts[1] !== 'page');
+    
+    if ($is_single_stickers) {
         $reel = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE slug = %s", $slug));
         
         if ($reel) {
@@ -35,21 +35,21 @@ function stickers_shortcode() {
             $output .= '</div>';
             $output .= '</div>';
         } else {
-            $output = '<p class="text-center text-gray-600">Reel não encontrado.</p>';
+            $output = '<p class="text-center text-gray-600">Figurinhas não encontradas.</p>';
         }
 
     } else {
-        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $page = $parts[2] ?? "1";
         $per_page = 12;
         $offset = ($page - 1) * $per_page;
 
-        $total_reels = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE status = 1");
-        $reels = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name ORDER BY id DESC LIMIT %d OFFSET %d", $per_page, $offset));
+        $total_stickers = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+        $stickers = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name ORDER BY id DESC LIMIT %d OFFSET %d", $per_page, $offset));
         
         $output .= '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">';
         
-        if ($reels) {
-            foreach ($reels as $reel) {
+        if ($stickers) {
+            foreach ($stickers as $reel) {
                 $img_url = esc_url("/wp-content/uploads/stickers/" . $reel->filename);
 
                 $output .= '<div class="bg-white rounded-xl shadow-md overflow-hidden transform transition-transform hover:scale-105 flex flex-col">';
@@ -72,13 +72,26 @@ function stickers_shortcode() {
 
         $output .= '</div>';
 
-        $total_pages = ceil($total_reels / $per_page);
+        $total_pages = ceil($total_stickers / $per_page);
         if ($total_pages > 1) {
-            $output .= '<div class="mt-8 flex justify-center space-x-2">';
-            for ($i = 1; $i <= $total_pages; $i++) {
-                $current_class = ($page === $i) ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300';
-                $output .= '<a href="?page=' . $i . '" class="px-4 py-2 rounded ' . $current_class . '">' . $i . '</a>';
+            $current_url = get_permalink();
+            
+            $output .= '<div class="mt-8 flex justify-between">';
+            
+            if ($page > 1) {
+                $prev_page_url = $page > 2 ? trailingslashit($current_url) . 'page/' . ($page - 1) : $current_url;
+                $output .= '<a href="' . esc_url($prev_page_url) . '" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">← Anterior</a>';
+            } else {
+                $output .= '<div></div>';
             }
+
+            if ($page < $total_pages) {
+                $next_page_url = trailingslashit($current_url) . 'page/' . ($page + 1);
+                $output .= '<a href="' . esc_url($next_page_url) . '" class="px-4 py-2 rounded bg-indigo-500 text-white hover:bg-indigo-600">Próximo →</a>';
+            } else {
+                $output .= '<div></div>';
+            }
+
             $output .= '</div>';
         }
     }
