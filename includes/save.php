@@ -58,23 +58,29 @@ function stickers_save_data(WP_REST_Request $request) {
 
         return ['success' => true, 'message' => 'Registro atualizado', 'id' => $id];
     } else {
-        $inserted = $wpdb->insert(
-            $table_name,
-            [
-                'filename'    => $filename,
-                'type'        => $type,
-                'category'    => $category,
-                'subcategory' => $subcategory,
-                'title'       => $title,
-                'description' => $description,
-                'slug'        => $slug,
-                'tags'        => $tags,
-            ],
-            ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+        $existing = $wpdb->get_var(
+            $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE slug = %s", $slug)
         );
 
-        if (!$inserted) {
-            return new WP_Error('db_error', 'Falha ao inserir o registro', ['status' => 500]);
+        if ($existing == 0) {
+            $inserted = $wpdb->insert(
+                $table_name,
+                [
+                    'filename'    => $filename,
+                    'type'        => $type,
+                    'category'    => $category,
+                    'subcategory' => $subcategory,
+                    'title'       => $title,
+                    'description' => $description,
+                    'slug'        => $slug,
+                    'tags'        => $tags,
+                ],
+                ['%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']
+            );
+
+            if (!$inserted) {
+                return new WP_Error('db_error', 'Falha ao inserir o registro', ['status' => 500]);
+            }
         }
 
         return ['success' => true, 'message' => 'Registro criado', 'id' => $wpdb->insert_id];
