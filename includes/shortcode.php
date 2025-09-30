@@ -1,6 +1,8 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+require_once plugin_dir_path(__FILE__) . 'helpers/modal.php';
+
 add_shortcode('stickers', 'stickers_shortcode');
 
 function stickers_shortcode() {
@@ -39,14 +41,45 @@ function stickers_shortcode() {
         }
 
     } else {
-        $page = $parts[2] ?? "1";
+        $page     = isset($_GET['pagina']) ? max(1, intval($_GET['pagina'])) : 1;
         $per_page = 12;
-        $offset = ($page - 1) * $per_page;
+        $offset   = ($page - 1) * $per_page;
 
-        $total_stickers = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
-        $stickers = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name ORDER BY id DESC LIMIT %d OFFSET %d", $per_page, $offset));
+        $where_clauses = [];
+        $params = [];
+
+        if (!empty($_GET['cabelo'])) {
+            $cabelos = explode(',', sanitize_text_field($_GET['cabelo']));
+            $placeholders = implode(',', array_fill(0, count($cabelos), '%s'));
+            $where_clauses[] = "hair IN ($placeholders)";
+            $params = array_merge($params, $cabelos);
+        }
+
+        if (!empty($_GET['olhos'])) {
+            $olhos = explode(',', sanitize_text_field($_GET['olhos']));
+            $placeholders = implode(',', array_fill(0, count($olhos), '%s'));
+            $where_clauses[] = "eyes IN ($placeholders)";
+            $params = array_merge($params, $olhos);
+        }
+
+        $where_sql = $where_clauses ? "WHERE " . implode(" AND ", $where_clauses) : "";
+
+        $sql_total = "SELECT COUNT(*) FROM $table_name $where_sql";
+        $total_stickers = $wpdb->get_var($wpdb->prepare($sql_total, $params));
+
+        $sql_items = "SELECT * FROM $table_name $where_sql ORDER BY id DESC LIMIT %d OFFSET %d";
+        $params_items = array_merge($params, [$per_page, $offset]);
+        $stickers = $wpdb->get_results($wpdb->prepare($sql_items, $params_items));
+
+        $output .= '<div class="text-center my-6">';
+        $output .= '<button id="filter-btn" class="px-6 py-3 rounded-full bg-indigo-500 text-white font-semibold shadow-lg hover:bg-indigo-600 transition-colors duration-300 flex items-center justify-center mx-auto">';
+        $output .= '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mr-2">';
+        $output .= '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3c1.359 0 2.666.023 3.96.062 1.46.044 2.378.892 2.636 2.36l1.246 7.478a.862.862 0 0 1-.774.965l-1.42.237c-.754.126-1.508.196-2.26.216m-1.748-8.25a.862.862 0 0 1 .775-.965l1.42-.237c.754-.126 1.508-.196 2.26-.216m-1.748-8.25l-2.738 1.66c-.66.402-1.282.906-1.854 1.48L5.75 8.75m1.5-1.5a.75.75 0 0 0-.75.75v3.25c0 .414.336.75.75.75h9.5c.414 0 .75-.336.75-.75V8a.75.75 0 0 0-.75-.75h-9.5z" />';
+        $output .= '</svg>';
+        $output .= 'Filtros</button>';
+        $output .= '</div>';
         
-        $output .= '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">';
+        $output .= '<div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">';
         
         if ($stickers) {
             foreach ($stickers as $reel) {
@@ -72,21 +105,26 @@ function stickers_shortcode() {
 
         $output .= '</div>';
 
+        $output = stickers_add_modal($output);
+
         $total_pages = ceil($total_stickers / $per_page);
         if ($total_pages > 1) {
-            $current_url = get_permalink();
-            
+            $current_url = home_url(add_query_arg([]));
+            $query_args  = $_GET;
+
             $output .= '<div class="mt-8 flex justify-between">';
-            
+
             if ($page > 1) {
-                $prev_page_url = $page > 2 ? trailingslashit($current_url) . 'page/' . ($page - 1) : $current_url;
+                $query_args['pagina'] = $page - 1;
+                $prev_page_url = add_query_arg($query_args, $current_url);
                 $output .= '<a href="' . esc_url($prev_page_url) . '" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">← Anterior</a>';
             } else {
                 $output .= '<div></div>';
             }
 
             if ($page < $total_pages) {
-                $next_page_url = trailingslashit($current_url) . 'page/' . ($page + 1);
+                $query_args['pagina'] = $page + 1;
+                $next_page_url = add_query_arg($query_args, $current_url);
                 $output .= '<a href="' . esc_url($next_page_url) . '" class="px-4 py-2 rounded bg-indigo-500 text-white hover:bg-indigo-600">Próximo →</a>';
             } else {
                 $output .= '<div></div>';
@@ -95,6 +133,8 @@ function stickers_shortcode() {
             $output .= '</div>';
         }
     }
+
+    $output = stickers_add_modal_script($output);
 
     return $output;
 }

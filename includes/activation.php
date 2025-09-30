@@ -25,6 +25,8 @@ function stickers_create_table() {
         title text,
         description text,
         slug varchar(100),
+        hair varchar(255),
+        eyes varchar(255),
         tags text,
         PRIMARY KEY  (id),
         UNIQUE KEY slug (slug)
